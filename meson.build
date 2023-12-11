@@ -303,7 +303,7 @@ inc_drm = include_directories('include/drm')
 
 libdrm_files = [files(
    'xf86drm.c', 'xf86drmHash.c', 'xf86drmRandom.c', 'xf86drmSL.c',
-   'xf86drmMode.c', 'open_memstream.c', 'open_memstream.h', 'funopen.c'
+   'xf86drmMode.c', 'open_memstream.c', 'open_memstream.h', 'funopen.c', 'wcio.h', 'local.h', 'fileext.h'
   ),
   config_file, format_mod_static_table
 ]
