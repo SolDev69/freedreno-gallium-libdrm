@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef HAVE_OPEN_MEMSTREAM
+
 /*
  * Implementation of the POSIX open_memstream() function, which Linux has
  * but BSD lacks.
@@ -223,107 +223,3 @@ FILE* open_memstream(char** bufp, size_t* sizep)
     abort();
 }
 #endif /*HAVE_FUNOPEN*/
-#if 0
-#define _GNU_SOURCE
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-/*
- * Simple regression test.
- *
- * To test on desktop Linux with valgrind, it's possible to make a simple
- * change to open_memstream() to use fopencookie instead:
- *
- *  cookie_io_functions_t iofuncs =
- *      { NULL, write_memstream, seek_memstream, close_memstream };
- *  fp = fopencookie(stream, "w", iofuncs);
- *
- * (Some tweaks to seek_memstream are also required, as that takes a
- * pointer to an offset rather than an offset, and returns 0 or -1.)
- */
-int testMemStream(void)
-{
-    FILE *stream;
-    char *buf;
-    size_t len;
-    off_t eob;
-    printf("Test1\n");
-    /* std example */
-    stream = open_memstream(&buf, &len);
-    fprintf(stream, "hello my world");
-    fflush(stream);
-    printf("buf=%s, len=%zu\n", buf, len);
-    eob = ftello(stream);
-    fseeko(stream, 0, SEEK_SET);
-    fprintf(stream, "good-bye");
-    fseeko(stream, eob, SEEK_SET);
-    fclose(stream);
-    printf("buf=%s, len=%zu\n", buf, len);
-    free(buf);
-    printf("Test2\n");
-    /* std example without final seek-to-end */
-    stream = open_memstream(&buf, &len);
-    fprintf(stream, "hello my world");
-    fflush(stream);
-    printf("buf=%s, len=%zu\n", buf, len);
-    eob = ftello(stream);
-    fseeko(stream, 0, SEEK_SET);
-    fprintf(stream, "good-bye");
-    //fseeko(stream, eob, SEEK_SET);
-    fclose(stream);
-    printf("buf=%s, len=%zu\n", buf, len);
-    free(buf);
-    printf("Test3\n");
-    /* fancy example; should expand buffer with writes */
-    static const int kCmpLen = 1024 + 128;
-    char* cmp = malloc(kCmpLen);
-    memset(cmp, 0, 1024);
-    memset(cmp+1024, 0xff, kCmpLen-1024);
-    sprintf(cmp, "This-is-a-tes1234");
-    sprintf(cmp + 1022, "abcdef");
-    stream = open_memstream (&buf, &len);
-    setvbuf(stream, NULL, _IONBF, 0);   /* note: crashes in glibc with this */
-    fprintf(stream, "This-is-a-test");
-    fseek(stream, -1, SEEK_CUR);    /* broken in glibc; can use {13,SEEK_SET} */
-    fprintf(stream, "1234");
-    fseek(stream, 1022, SEEK_SET);
-    fputc('a', stream);
-    fputc('b', stream);
-    fputc('c', stream);
-    fputc('d', stream);
-    fputc('e', stream);
-    fputc('f', stream);
-    fflush(stream);
-    if (memcmp(buf, cmp, len+1) != 0) {
-        printf("mismatch\n");
-    } else {
-        printf("match\n");
-    }
-    printf("Test4\n");
-    stream = open_memstream (&buf, &len);
-    fseek(stream, 5000, SEEK_SET);
-    fseek(stream, 4096, SEEK_SET);
-    fseek(stream, -1, SEEK_SET);        /* should have no effect */
-    fputc('x', stream);
-    if (ftell(stream) == 4097)
-        printf("good\n");
-    else
-        printf("BAD: offset is %ld\n", ftell(stream));
-    printf("DONE\n");
-    return 0;
-}
-/* expected output:
-Test1
-buf=hello my world, len=14
-buf=good-bye world, len=14
-Test2
-buf=hello my world, len=14
-buf=good-bye, len=8
-Test3
-match
-Test4
-good
-DONE
-*/
-#endif
-#endif /*!HAVE_OPEN_MEMSTREAM*/
